@@ -5,6 +5,10 @@
   "version": "1.0.0",
   "publisher": "tfvc-manager",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avishaynaim/tfvc-vscode"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -13,24 +17,42 @@
   "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tfvc-sidebar",
+          "title": "TFVC Manager",
+          "icon": "resources/tfvc-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "tfvc-sidebar": [
+        {
+          "id": "tfvc.explorer",
+          "name": "TFVC",
+          "icon": "resources/tfvc-activity.svg"
+        }
+      ]
+    },
     "commands": [
-      { "command": "tfvc.checkout",      "title": "Check Out",                "category": "TFVC", "icon": "$(cloud-download)" },
-      { "command": "tfvc.checkin",       "title": "Check In…",                "category": "TFVC", "icon": "$(cloud-upload)" },
-      { "command": "tfvc.undo",          "title": "Undo Changes",             "category": "TFVC", "icon": "$(discard)" },
-      { "command": "tfvc.getLatest",     "title": "Get Latest Version",       "category": "TFVC", "icon": "$(sync)" },
-      { "command": "tfvc.compare",       "title": "Compare with Server",      "category": "TFVC", "icon": "$(diff)" },
-      { "command": "tfvc.history",       "title": "Show History",             "category": "TFVC", "icon": "$(history)" },
-      { "command": "tfvc.add",           "title": "Add to Source Control",    "category": "TFVC" },
-      { "command": "tfvc.delete",        "title": "Delete from Source Control","category": "TFVC" },
-      { "command": "tfvc.refresh",       "title": "Refresh Pending Changes",  "category": "TFVC", "icon": "$(refresh)" },
-      { "command": "tfvc.shelve",        "title": "Shelve Changes…",          "category": "TFVC" },
-      { "command": "tfvc.unshelve",      "title": "Unshelve Changes…",        "category": "TFVC" },
-      { "command": "tfvc.configure",     "title": "Configure Extension…",     "category": "TFVC" },
-      { "command": "tfvc.setServer",     "title": "Set Server URL…",          "category": "TFVC" },
-      { "command": "tfvc.setTfPath",     "title": "Set TF.exe Path…",         "category": "TFVC" },
-      { "command": "tfvc.setCredentials","title": "Set Login Credentials…",   "category": "TFVC" },
-      { "command": "tfvc.clearCredentials","title": "Clear Saved Credentials","category": "TFVC" },
-      { "command": "tfvc.showOutput",    "title": "Show Output Log",          "category": "TFVC" }
+      { "command": "tfvc.checkout",         "title": "Check Out",                "category": "TFVC", "icon": "$(cloud-download)" },
+      { "command": "tfvc.checkin",          "title": "Check In…",                "category": "TFVC", "icon": "$(cloud-upload)" },
+      { "command": "tfvc.undo",             "title": "Undo Changes",             "category": "TFVC", "icon": "$(discard)" },
+      { "command": "tfvc.getLatest",        "title": "Get Latest Version",       "category": "TFVC", "icon": "$(sync)" },
+      { "command": "tfvc.compare",          "title": "Compare with Server",      "category": "TFVC", "icon": "$(diff)" },
+      { "command": "tfvc.history",          "title": "Show History",             "category": "TFVC", "icon": "$(history)" },
+      { "command": "tfvc.add",              "title": "Add to Source Control",    "category": "TFVC" },
+      { "command": "tfvc.delete",           "title": "Delete from Source Control","category": "TFVC" },
+      { "command": "tfvc.refresh",          "title": "Refresh Pending Changes",  "category": "TFVC", "icon": "$(refresh)" },
+      { "command": "tfvc.shelve",           "title": "Shelve Changes…",          "category": "TFVC" },
+      { "command": "tfvc.unshelve",         "title": "Unshelve Changes…",        "category": "TFVC" },
+      { "command": "tfvc.configure",        "title": "Configure Extension…",     "category": "TFVC", "icon": "$(gear)" },
+      { "command": "tfvc.setServer",        "title": "Set Server URL…",          "category": "TFVC" },
+      { "command": "tfvc.setTfPath",        "title": "Set TF.exe Path…",         "category": "TFVC" },
+      { "command": "tfvc.setCredentials",   "title": "Set Login Credentials…",   "category": "TFVC" },
+      { "command": "tfvc.clearCredentials", "title": "Clear Saved Credentials",  "category": "TFVC" },
+      { "command": "tfvc.showOutput",       "title": "Show Output Log",          "category": "TFVC" }
     ],
     "menus": {
       "commandPalette": [
@@ -63,16 +85,16 @@
         { "command": "tfvc.delete",    "group": "tfvc@8" }
       ],
       "editor/context": [
-        { "command": "tfvc.checkout",  "group": "tfvc@1" },
-        { "command": "tfvc.checkin",   "group": "tfvc@2" },
-        { "command": "tfvc.undo",      "group": "tfvc@3" },
-        { "command": "tfvc.compare",   "group": "tfvc@4" },
-        { "command": "tfvc.history",   "group": "tfvc@5" }
+        { "command": "tfvc.checkout", "group": "tfvc@1" },
+        { "command": "tfvc.checkin",  "group": "tfvc@2" },
+        { "command": "tfvc.undo",     "group": "tfvc@3" },
+        { "command": "tfvc.compare",  "group": "tfvc@4" },
+        { "command": "tfvc.history",  "group": "tfvc@5" }
       ],
       "editor/title/context": [
-        { "command": "tfvc.checkout",  "group": "tfvc" },
-        { "command": "tfvc.checkin",   "group": "tfvc" },
-        { "command": "tfvc.compare",   "group": "tfvc" }
+        { "command": "tfvc.checkout", "group": "tfvc" },
+        { "command": "tfvc.checkin",  "group": "tfvc" },
+        { "command": "tfvc.compare",  "group": "tfvc" }
       ],
       "scm/title": [
         { "command": "tfvc.refresh",   "group": "navigation@1", "when": "scmProvider == tfvc" },
@@ -81,11 +103,24 @@
         { "command": "tfvc.configure", "group": "2_config@1",   "when": "scmProvider == tfvc" }
       ],
       "scm/resourceState/context": [
-        { "command": "tfvc.checkout",  "group": "inline@1", "when": "scmProvider == tfvc" },
-        { "command": "tfvc.undo",      "group": "inline@2", "when": "scmProvider == tfvc" },
-        { "command": "tfvc.compare",   "group": "inline@3", "when": "scmProvider == tfvc" },
-        { "command": "tfvc.history",   "group": "1_ops@1",  "when": "scmProvider == tfvc" },
-        { "command": "tfvc.checkin",   "group": "1_ops@2",  "when": "scmProvider == tfvc" }
+        { "command": "tfvc.checkout", "group": "inline@1", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.undo",     "group": "inline@2", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.compare",  "group": "inline@3", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.history",  "group": "1_ops@1",  "when": "scmProvider == tfvc" },
+        { "command": "tfvc.checkin",  "group": "1_ops@2",  "when": "scmProvider == tfvc" }
+      ],
+      "view/title": [
+        { "command": "tfvc.refresh",   "group": "navigation@1", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.getLatest", "group": "navigation@2", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.checkin",   "group": "navigation@3", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.configure", "group": "navigation@4", "when": "view == tfvc.explorer" }
+      ],
+      "view/item/context": [
+        { "command": "tfvc.checkout",  "group": "inline@1", "when": "view == tfvc.explorer && viewItem =~ /tfvc-pending/" },
+        { "command": "tfvc.undo",      "group": "inline@2", "when": "view == tfvc.explorer && viewItem =~ /tfvc-pending/" },
+        { "command": "tfvc.compare",   "group": "inline@3", "when": "view == tfvc.explorer && viewItem == tfvc-pending-change" },
+        { "command": "tfvc.history",   "group": "1_ops@1",  "when": "view == tfvc.explorer && viewItem =~ /tfvc-pending/" },
+        { "command": "tfvc.checkin",   "group": "1_ops@2",  "when": "view == tfvc.explorer && viewItem =~ /tfvc-pending/" }
       ]
     },
     "configuration": {

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { TfvcRepository } from './tfvcRepository';
 import * as configuration from './configuration';
 import { ChangeType, PendingChange } from './types';
+import { TfvcTreeProvider } from './tfvcTreeProvider';
 
 // Letter badge + color per change type, consistent with standard SCM conventions
 const CHANGE_DECORATIONS: Record<
@@ -25,6 +26,7 @@ export class TfvcScmProvider implements vscode.Disposable {
 
   private readonly _disposables: vscode.Disposable[] = [];
   private _pollingTimer: ReturnType<typeof setInterval> | undefined;
+  private _treeProvider: TfvcTreeProvider | undefined;
 
   /** Last known pending changes (kept so commands can inspect them). */
   pendingChanges: PendingChange[] = [];
@@ -94,6 +96,14 @@ export class TfvcScmProvider implements vscode.Disposable {
     );
 
     this.scm.count = this.pendingChanges.length;
+
+    // Keep the sidebar tree in sync
+    this._treeProvider?.update(this.pendingChanges);
+  }
+
+  /** Wire up the sidebar tree provider so it stays in sync with SCM refreshes. */
+  setTreeProvider(tree: TfvcTreeProvider): void {
+    this._treeProvider = tree;
   }
 
   /** The text currently in the SCM input box (used as default check-in comment). */

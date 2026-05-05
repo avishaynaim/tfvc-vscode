@@ -3,6 +3,7 @@ import { TfExec } from './tfExec';
 import { TfvcRepository } from './tfvcRepository';
 import { TfvcScmProvider } from './tfvcScmProvider';
 import { TfvcContentProvider } from './tfvcContentProvider';
+import { TfvcTreeProvider } from './tfvcTreeProvider';
 import { CredentialManager } from './credentials';
 import * as configuration from './configuration';
 import * as commands from './commands';
@@ -21,9 +22,19 @@ export function activate(context: vscode.ExtensionContext): void {
   const repo = new TfvcRepository(tfExec, credMgr, outputChannel);
   const scmProvider = new TfvcScmProvider(repo, context);
   const contentProvider = new TfvcContentProvider(repo);
+  const treeProvider = new TfvcTreeProvider();
+
+  // Link tree provider so it refreshes whenever the SCM panel refreshes
+  scmProvider.setTreeProvider(treeProvider);
 
   context.subscriptions.push(scmProvider);
   context.subscriptions.push(contentProvider);
+  context.subscriptions.push(treeProvider);
+
+  // Activity bar sidebar tree view
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('tfvc.explorer', treeProvider)
+  );
 
   // Register virtual document provider for diff editor (server versions of files)
   context.subscriptions.push(
@@ -31,6 +42,15 @@ export function activate(context: vscode.ExtensionContext): void {
       TfvcContentProvider.scheme,
       contentProvider
     )
+  );
+
+  // Refresh tree when config changes (server URL, tf.exe path, auth)
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('tfvc')) {
+        treeProvider.refresh();
+      }
+    })
   );
 
   // Warn if tf.exe was not found
