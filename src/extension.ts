@@ -64,17 +64,19 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register commands
   // -------------------------------------------------------------------------
 
-  const reg = (cmd: string, handler: (...args: unknown[]) => unknown) =>
+  // VS Code command dispatch is dynamically typed — use any for handler signatures
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reg = (cmd: string, handler: (...args: any[]) => any) =>
     context.subscriptions.push(vscode.commands.registerCommand(cmd, handler));
 
   // File operations — accept URI array from explorer/editor context menus
-  reg('tfvc.checkout', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.checkout', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.checkout(repo, scmProvider, resolveUris(uri, uris))
     )
   );
 
-  reg('tfvc.checkin', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.checkin', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.checkin(repo, scmProvider, resolveUris(uri, uris))
     )
@@ -86,44 +88,44 @@ export function activate(context: vscode.ExtensionContext): void {
     )
   );
 
-  reg('tfvc.undo', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.undo', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.undo(repo, scmProvider, resolveUris(uri, uris))
     )
   );
 
-  reg('tfvc.getLatest', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.getLatest', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.getLatest(repo, scmProvider, resolveUris(uri, uris))
     )
   );
 
-  reg('tfvc.compare', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.compare', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.compare(repo, resolveUris(uri, uris))
     )
   );
 
   // Called when user clicks a resource in the SCM panel
-  reg('tfvc.compareFromScm', (change) =>
+  reg('tfvc.compareFromScm', (change: import('./types').PendingChange) =>
     runSafe(outputChannel, () =>
       commands.compareFromScm(repo, change)
     )
   );
 
-  reg('tfvc.history', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.history', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.showHistory(repo, resolveUris(uri, uris))
     )
   );
 
-  reg('tfvc.add', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.add', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.add(repo, scmProvider, resolveUris(uri, uris))
     )
   );
 
-  reg('tfvc.delete', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+  reg('tfvc.delete', (uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined) =>
     runSafe(outputChannel, () =>
       commands.deleteFromTfvc(repo, scmProvider, resolveUris(uri, uris))
     )
