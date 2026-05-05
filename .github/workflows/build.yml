@@ -1,0 +1,56 @@
+name: Build VSIX
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle extension
+        run: npm run package
+
+      - name: Package VSIX
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - name: Get VSIX filename
+        id: vsix
+        run: echo "file=$(ls *.vsix)" >> $GITHUB_OUTPUT
+
+      - name: Upload VSIX as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfvc-manager-vsix
+          path: "*.vsix"
+
+      - name: Delete previous latest release
+        run: gh release delete latest --yes 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release with VSIX
+        run: |
+          gh release create latest \
+            --title "TFVC Manager — latest build" \
+            --notes "## Install
+          1. Download **${{ steps.vsix.outputs.file }}** below.
+          2. In VS Code: **Extensions** → **⋯** → **Install from VSIX…**
+          3. Open your TFVC workspace, then run **TFVC: Set Server URL…** from the Command Palette." \
+            --latest \
+            "${{ steps.vsix.outputs.file }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
