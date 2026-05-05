@@ -1,0 +1,162 @@
+{
+  "name": "tfvc-manager",
+  "displayName": "TFVC Manager",
+  "description": "Team Foundation Version Control (TFVC) integration — check in/out, compare, history, shelve and more via tf.exe",
+  "version": "1.0.0",
+  "publisher": "tfvc-manager",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["SCM Providers"],
+  "keywords": ["tfvc", "tfs", "team foundation", "version control", "scm", "azure devops"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "tfvc.checkout",      "title": "Check Out",                "category": "TFVC", "icon": "$(cloud-download)" },
+      { "command": "tfvc.checkin",       "title": "Check In…",                "category": "TFVC", "icon": "$(cloud-upload)" },
+      { "command": "tfvc.undo",          "title": "Undo Changes",             "category": "TFVC", "icon": "$(discard)" },
+      { "command": "tfvc.getLatest",     "title": "Get Latest Version",       "category": "TFVC", "icon": "$(sync)" },
+      { "command": "tfvc.compare",       "title": "Compare with Server",      "category": "TFVC", "icon": "$(diff)" },
+      { "command": "tfvc.history",       "title": "Show History",             "category": "TFVC", "icon": "$(history)" },
+      { "command": "tfvc.add",           "title": "Add to Source Control",    "category": "TFVC" },
+      { "command": "tfvc.delete",        "title": "Delete from Source Control","category": "TFVC" },
+      { "command": "tfvc.refresh",       "title": "Refresh Pending Changes",  "category": "TFVC", "icon": "$(refresh)" },
+      { "command": "tfvc.shelve",        "title": "Shelve Changes…",          "category": "TFVC" },
+      { "command": "tfvc.unshelve",      "title": "Unshelve Changes…",        "category": "TFVC" },
+      { "command": "tfvc.configure",     "title": "Configure Extension…",     "category": "TFVC" },
+      { "command": "tfvc.setServer",     "title": "Set Server URL…",          "category": "TFVC" },
+      { "command": "tfvc.setTfPath",     "title": "Set TF.exe Path…",         "category": "TFVC" },
+      { "command": "tfvc.setCredentials","title": "Set Login Credentials…",   "category": "TFVC" },
+      { "command": "tfvc.clearCredentials","title": "Clear Saved Credentials","category": "TFVC" },
+      { "command": "tfvc.showOutput",    "title": "Show Output Log",          "category": "TFVC" }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "tfvc.checkout" },
+        { "command": "tfvc.checkin" },
+        { "command": "tfvc.undo" },
+        { "command": "tfvc.getLatest" },
+        { "command": "tfvc.compare" },
+        { "command": "tfvc.history" },
+        { "command": "tfvc.add" },
+        { "command": "tfvc.delete" },
+        { "command": "tfvc.refresh" },
+        { "command": "tfvc.shelve" },
+        { "command": "tfvc.unshelve" },
+        { "command": "tfvc.configure" },
+        { "command": "tfvc.setServer" },
+        { "command": "tfvc.setTfPath" },
+        { "command": "tfvc.setCredentials" },
+        { "command": "tfvc.clearCredentials" },
+        { "command": "tfvc.showOutput" }
+      ],
+      "explorer/context": [
+        { "command": "tfvc.checkout",  "group": "tfvc@1", "when": "!explorerResourceIsFolder" },
+        { "command": "tfvc.checkin",   "group": "tfvc@2" },
+        { "command": "tfvc.undo",      "group": "tfvc@3", "when": "!explorerResourceIsFolder" },
+        { "command": "tfvc.getLatest", "group": "tfvc@4" },
+        { "command": "tfvc.compare",   "group": "tfvc@5", "when": "!explorerResourceIsFolder" },
+        { "command": "tfvc.history",   "group": "tfvc@6" },
+        { "command": "tfvc.add",       "group": "tfvc@7" },
+        { "command": "tfvc.delete",    "group": "tfvc@8" }
+      ],
+      "editor/context": [
+        { "command": "tfvc.checkout",  "group": "tfvc@1" },
+        { "command": "tfvc.checkin",   "group": "tfvc@2" },
+        { "command": "tfvc.undo",      "group": "tfvc@3" },
+        { "command": "tfvc.compare",   "group": "tfvc@4" },
+        { "command": "tfvc.history",   "group": "tfvc@5" }
+      ],
+      "editor/title/context": [
+        { "command": "tfvc.checkout",  "group": "tfvc" },
+        { "command": "tfvc.checkin",   "group": "tfvc" },
+        { "command": "tfvc.compare",   "group": "tfvc" }
+      ],
+      "scm/title": [
+        { "command": "tfvc.refresh",   "group": "navigation@1", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.getLatest", "group": "navigation@2", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.shelve",    "group": "navigation@3", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.configure", "group": "2_config@1",   "when": "scmProvider == tfvc" }
+      ],
+      "scm/resourceState/context": [
+        { "command": "tfvc.checkout",  "group": "inline@1", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.undo",      "group": "inline@2", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.compare",   "group": "inline@3", "when": "scmProvider == tfvc" },
+        { "command": "tfvc.history",   "group": "1_ops@1",  "when": "scmProvider == tfvc" },
+        { "command": "tfvc.checkin",   "group": "1_ops@2",  "when": "scmProvider == tfvc" }
+      ]
+    },
+    "configuration": {
+      "title": "TFVC Manager",
+      "properties": {
+        "tfvc.serverUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "TFVC server collection URL, e.g. `http://myserver:8080/tfs/DefaultCollection`"
+        },
+        "tfvc.tfExePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Full path to `tf.exe`. Leave empty to auto-detect from Visual Studio installation."
+        },
+        "tfvc.autoDetectTfPath": {
+          "type": "boolean",
+          "default": true,
+          "description": "Search common Visual Studio installation paths to find tf.exe automatically."
+        },
+        "tfvc.useWindowsAuth": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the current Windows session credentials (NTLM). Disable to supply a username and password instead."
+        },
+        "tfvc.defaultCheckinComment": {
+          "type": "string",
+          "default": "",
+          "description": "Pre-filled comment when checking in files."
+        },
+        "tfvc.pollingIntervalSeconds": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Seconds between automatic status refreshes. 0 = disabled."
+        },
+        "tfvc.showOutputOnError": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically reveal the TFVC output channel when an error occurs."
+        },
+        "tfvc.confirmUndo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask for confirmation before undoing pending changes."
+        },
+        "tfvc.diffTool": {
+          "type": "string",
+          "enum": ["vscode", "tf"],
+          "default": "vscode",
+          "description": "Diff tool to use: VS Code built-in diff editor or tf.exe diff."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack --mode development",
+    "watch": "webpack --mode development --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.0",
+    "ts-loader": "^9.5.0",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.0"
+  }
+}
