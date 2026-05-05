@@ -3,6 +3,8 @@ import { TfvcRepository } from './tfvcRepository';
 import * as configuration from './configuration';
 import { ChangeType, PendingChange } from './types';
 import { TfvcTreeProvider } from './tfvcTreeProvider';
+import { TfvcStatusBar } from './statusBar';
+import { OfflineMonitor } from './offlineMode';
 
 // Letter badge + color per change type, consistent with standard SCM conventions
 const CHANGE_DECORATIONS: Record<
@@ -27,6 +29,8 @@ export class TfvcScmProvider implements vscode.Disposable {
   private readonly _disposables: vscode.Disposable[] = [];
   private _pollingTimer: ReturnType<typeof setInterval> | undefined;
   private _treeProvider: TfvcTreeProvider | undefined;
+  private _statusBar: TfvcStatusBar | undefined;
+  private _offline: OfflineMonitor | undefined;
 
   /** Last known pending changes (kept so commands can inspect them). */
   pendingChanges: PendingChange[] = [];
@@ -84,6 +88,16 @@ export class TfvcScmProvider implements vscode.Disposable {
       return;
     }
 
+    // Check connectivity — updates offline state + status bar
+    if (this._offline && configuration.getServerUrl()) {
+      const isOffline = await this._offline.check();
+      if (isOffline) {
+        this._statusBar?.setOffline();
+        this._treeProvider?.update(this.pendingChanges); // keep last known list
+        return;
+      }
+    }
+
     try {
       this.pendingChanges = await this.repository.getStatus(rootPath);
     } catch {
@@ -97,13 +111,30 @@ export class TfvcScmProvider implements vscode.Disposable {
 
     this.scm.count = this.pendingChanges.length;
 
-    // Keep the sidebar tree in sync
+    // Keep sidebar tree in sync
     this._treeProvider?.update(this.pendingChanges);
+
+    // Update status bar
+    const serverUrl = configuration.getServerUrl();
+    if (!serverUrl) {
+      this._statusBar?.setDisconnected();
+    } else if (this._offline?.isOffline) {
+      this._statusBar?.setOffline();
+    } else {
+      this._statusBar?.setConnected(this.pendingChanges.length);
+    }
   }
 
-  /** Wire up the sidebar tree provider so it stays in sync with SCM refreshes. */
   setTreeProvider(tree: TfvcTreeProvider): void {
     this._treeProvider = tree;
+  }
+
+  setStatusBar(bar: TfvcStatusBar): void {
+    this._statusBar = bar;
+  }
+
+  setOfflineMonitor(monitor: OfflineMonitor): void {
+    this._offline = monitor;
   }
 
   /** The text currently in the SCM input box (used as default check-in comment). */

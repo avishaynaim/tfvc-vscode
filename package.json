@@ -51,8 +51,11 @@
       { "command": "tfvc.setServer",        "title": "Set Server URL…",          "category": "TFVC" },
       { "command": "tfvc.setTfPath",        "title": "Set TF.exe Path…",         "category": "TFVC" },
       { "command": "tfvc.setCredentials",   "title": "Set Login Credentials…",   "category": "TFVC" },
-      { "command": "tfvc.clearCredentials", "title": "Clear Saved Credentials",  "category": "TFVC" },
-      { "command": "tfvc.showOutput",       "title": "Show Output Log",          "category": "TFVC" }
+      { "command": "tfvc.clearCredentials",  "title": "Clear Saved Credentials",  "category": "TFVC" },
+      { "command": "tfvc.showOutput",        "title": "Show Output Log",           "category": "TFVC" },
+      { "command": "tfvc.resolveConflicts",  "title": "Resolve Conflicts…",        "category": "TFVC", "icon": "$(warning)" },
+      { "command": "tfvc.getAtLabel",        "title": "Get at Label / Tag…",       "category": "TFVC", "icon": "$(tag)" },
+      { "command": "tfvc.pickWorkspace",     "title": "Select Workspace…",         "category": "TFVC", "icon": "$(root-folder)" }
     ],
     "menus": {
       "commandPalette": [
@@ -72,7 +75,10 @@
         { "command": "tfvc.setTfPath" },
         { "command": "tfvc.setCredentials" },
         { "command": "tfvc.clearCredentials" },
-        { "command": "tfvc.showOutput" }
+        { "command": "tfvc.showOutput" },
+        { "command": "tfvc.resolveConflicts" },
+        { "command": "tfvc.getAtLabel" },
+        { "command": "tfvc.pickWorkspace" }
       ],
       "explorer/context": [
         { "command": "tfvc.checkout",  "group": "tfvc@1", "when": "!explorerResourceIsFolder" },
@@ -113,7 +119,10 @@
         { "command": "tfvc.refresh",   "group": "navigation@1", "when": "view == tfvc.explorer" },
         { "command": "tfvc.getLatest", "group": "navigation@2", "when": "view == tfvc.explorer" },
         { "command": "tfvc.checkin",   "group": "navigation@3", "when": "view == tfvc.explorer" },
-        { "command": "tfvc.configure", "group": "navigation@4", "when": "view == tfvc.explorer" }
+        { "command": "tfvc.configure",         "group": "navigation@4", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.resolveConflicts",   "group": "navigation@5", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.getAtLabel",         "group": "navigation@6", "when": "view == tfvc.explorer" },
+        { "command": "tfvc.pickWorkspace",      "group": "navigation@7", "when": "view == tfvc.explorer" }
       ],
       "view/item/context": [
         { "command": "tfvc.checkout",  "group": "inline@1", "when": "view == tfvc.explorer && viewItem =~ /tfvc-pending/" },
@@ -172,6 +181,16 @@
           "enum": ["vscode", "tf"],
           "default": "vscode",
           "description": "Diff tool to use: VS Code built-in diff editor or tf.exe diff."
+        },
+        "tfvc.autoCheckout": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically check out a file when you save it and it is still read-only in the TFVC workspace."
+        },
+        "tfvc.workspace": {
+          "type": "string",
+          "default": "",
+          "description": "Name of the TFVC workspace to use. Leave empty to auto-detect. Set via TFVC: Select Workspace…"
         }
       }
     }

@@ -5,6 +5,10 @@ import { TfvcScmProvider } from './tfvcScmProvider';
 import { TfvcContentProvider } from './tfvcContentProvider';
 import * as configuration from './configuration';
 import { ChangesetInfo, PendingChange } from './types';
+import { showHistoryWithViewer } from './changesetViewer';
+import { resolveConflicts } from './conflictResolver';
+import { getAtLabel } from './labelSupport';
+import { pickWorkspace } from './workspacePicker';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -281,52 +285,31 @@ export async function showHistory(
 ): Promise<void> {
   const cwd = configuration.getWorkspaceRoot();
   const filePath = resolveTargetPaths(uris)[0] ?? cwd;
-
   if (!filePath) {
     vscode.window.showWarningMessage('TFVC: No file or folder selected for history.');
     return;
   }
+  // Enhanced history — shows changeset list then lets user open per-file diffs
+  await showHistoryWithViewer(repo, filePath);
+}
 
-  let history: ChangesetInfo[];
-  await withProgress('Loading history…', async () => {
-    history = await repo.getHistory(filePath, 50, cwd);
-  });
+// Delegate commands for new features
+export async function resolveConflictsCmd(
+  repo: TfvcRepository,
+  scm: TfvcScmProvider
+): Promise<void> {
+  await resolveConflicts(repo, scm);
+}
 
-  if (!history! || history.length === 0) {
-    vscode.window.showInformationMessage('TFVC: No history found.');
-    return;
-  }
+export async function getAtLabelCmd(
+  repo: TfvcRepository,
+  scm: TfvcScmProvider
+): Promise<void> {
+  await getAtLabel(repo, scm);
+}
 
-  const items = history.map((cs) => ({
-    label:       `#${cs.id} — ${cs.comment || '(no comment)'}`,
-    description: cs.owner,
-    detail:      formatDate(cs.date) + (cs.items.length > 0 ? `  •  ${cs.items.length} item(s)` : ''),
-    changeset:   cs,
-  }));
-
-  const selected = await vscode.window.showQuickPick(items, {
-    title: `TFVC History — ${path.basename(filePath)}`,
-    placeHolder: 'Select a changeset to view details',
-    matchOnDescription: true,
-    matchOnDetail: true,
-  });
-
-  if (!selected) {
-    return;
-  }
-
-  // Show changeset detail in output channel
-  const cs = selected.changeset;
-  const channel = vscode.window.createOutputChannel(`TFVC History #${cs.id}`);
-  channel.appendLine(`Changeset:  #${cs.id}`);
-  channel.appendLine(`Owner:      ${cs.owner}`);
-  channel.appendLine(`Date:       ${formatDate(cs.date)}`);
-  channel.appendLine(`Comment:    ${cs.comment || '(none)'}`);
-  channel.appendLine(`\nChanged items (${cs.items.length}):`);
-  for (const item of cs.items) {
-    channel.appendLine(`  [${item.changeType.toUpperCase().padEnd(6)}] ${item.serverItem}`);
-  }
-  channel.show();
+export async function pickWorkspaceCmd(repo: TfvcRepository): Promise<void> {
+  await pickWorkspace(repo);
 }
 
 // ---------------------------------------------------------------------------

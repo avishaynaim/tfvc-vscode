@@ -14,6 +14,20 @@ import {
   WorkspaceInfo,
 } from './types';
 
+export interface LabelInfo {
+  name: string;
+  owner: string;
+  date: string;
+  comment: string;
+  scope: string;
+}
+
+export interface ConflictInfo {
+  localItem: string;
+  serverItem: string;
+  type: string;
+}
+
 export class TfvcRepository {
   constructor(
     private readonly exec: TfExec,
@@ -237,11 +251,34 @@ export class TfvcRepository {
     try {
       return fs.readFileSync(tmpPath);
     } finally {
-      try {
-        fs.unlinkSync(tmpPath);
-      } catch {
-        // ignore cleanup errors
-      }
+      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+    }
+  }
+
+  /**
+   * Get a file at any TFS version spec: T (tip), W (workspace), C12345, L<label>, etc.
+   * Accepts both local paths and server items ($/…).
+   */
+  async getFileAtVersion(
+    itemPath: string,
+    version: string,
+    cwd?: string
+  ): Promise<Uint8Array> {
+    const tmpPath = path.join(
+      os.tmpdir(),
+      `tfvc_v${version.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}_${path.basename(itemPath)}`
+    );
+    const result = await this.run(
+      ['view', itemPath, `/version:${version}`, `/output:${tmpPath}`],
+      cwd
+    );
+    if (TfExec.isError(result)) {
+      throw new Error(TfExec.extractError(result));
+    }
+    try {
+      return fs.readFileSync(tmpPath);
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
     }
   }
 
@@ -297,13 +334,76 @@ export class TfvcRepository {
   /** Quick check: does this path belong to a TFVC workspace? */
   async isInWorkspace(localPath: string): Promise<boolean> {
     try {
-      const result = await this.run(
-        ['workfold', localPath],
-        localPath
-      );
+      const result = await this.run(['workfold', localPath], localPath);
       return result.exitCode === 0 && /\$\//i.test(result.stdout);
     } catch {
       return false;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Workspaces
+  // -------------------------------------------------------------------------
+
+  /** List all TFVC workspaces on this machine visible to the current user. */
+  async getWorkspaces(cwd?: string): Promise<WorkspaceInfo[]> {
+    const result = await this.run(
+      ['workspaces', '/format:xml', '/computer:.'],
+      cwd
+    );
+    // exit code 1 just means "no workspaces found" — not a fatal error
+    if (result.exitCode > 1 && TfExec.isError(result)) {
+      throw new Error(TfExec.extractError(result));
+    }
+    return parseWorkspacesXml(result.stdout);
+  }
+
+  // -------------------------------------------------------------------------
+  // Labels
+  // -------------------------------------------------------------------------
+
+  async getLabels(cwd?: string): Promise<LabelInfo[]> {
+    const result = await this.run(['labels', '/format:xml', '/recursive'], cwd);
+    if (TfExec.isError(result)) {
+      throw new Error(TfExec.extractError(result));
+    }
+    return parseLabelsXml(result.stdout);
+  }
+
+  async getAtLabel(labelName: string, cwd?: string): Promise<void> {
+    const result = await this.run(
+      ['get', `/version:L${labelName}`, '/recursive'],
+      cwd
+    );
+    if (TfExec.isError(result)) {
+      throw new Error(TfExec.extractError(result));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Conflicts
+  // -------------------------------------------------------------------------
+
+  async getConflicts(cwd?: string): Promise<ConflictInfo[]> {
+    const result = await this.run(
+      ['resolve', '/preview', '/recursive', '.'],
+      cwd
+    );
+    // tf resolve /preview exits 1 when conflicts exist — that's expected
+    return parseConflictsText(result.stdout + result.stderr);
+  }
+
+  async resolveConflict(
+    filePath: string,
+    resolution: 'AcceptTheirs' | 'AcceptYours' | 'AcceptMerge',
+    cwd?: string
+  ): Promise<void> {
+    const result = await this.run(
+      ['resolve', filePath, `/auto:${resolution}`],
+      cwd
+    );
+    if (TfExec.isError(result)) {
+      throw new Error(TfExec.extractError(result));
     }
   }
 }
@@ -394,9 +494,7 @@ function parseHistoryXml(xml: string): ChangesetInfo[] {
 function parseWorkspaceXml(xml: string): WorkspaceInfo | undefined {
   const wsRe = /<workspace\s+([^>]+?)>/i;
   const wsMatch = xml.match(wsRe);
-  if (!wsMatch) {
-    return undefined;
-  }
+  if (!wsMatch) { return undefined; }
   const wsAttrs = wsMatch[1];
   const mappings: WorkspaceInfo['mappings'] = [];
   const mapRe = /<map\s+([^>]+?)(?:\/>|>)/gi;
@@ -414,4 +512,69 @@ function parseWorkspaceXml(xml: string): WorkspaceInfo | undefined {
     serverUrl: attrVal(wsAttrs, 'server'),
     mappings,
   };
+}
+
+function parseWorkspacesXml(xml: string): WorkspaceInfo[] {
+  const result: WorkspaceInfo[] = [];
+  const wsRe = /<workspace\s+([^>]+?)>([\s\S]*?)<\/workspace>/gi;
+  const mapRe = /<working-folder\s+([^>]+?)(?:\/>|>)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = wsRe.exec(xml)) !== null) {
+    const attrs = m[1];
+    const body  = m[2];
+    const mappings: WorkspaceInfo['mappings'] = [];
+    let mm: RegExpExecArray | null;
+    mapRe.lastIndex = 0;
+    while ((mm = mapRe.exec(body)) !== null) {
+      const mAttrs = mm[1];
+      mappings.push({
+        serverPath: attrVal(mAttrs, 'server-item'),
+        localPath:  attrVal(mAttrs, 'local-item'),
+      });
+    }
+    result.push({
+      name:      attrVal(attrs, 'name'),
+      owner:     attrVal(attrs, 'owner'),
+      computer:  attrVal(attrs, 'computer'),
+      serverUrl: attrVal(attrs, 'server'),
+      mappings,
+    });
+  }
+  return result;
+}
+
+function parseLabelsXml(xml: string): LabelInfo[] {
+  const result: LabelInfo[] = [];
+  const re = /<label\s+([^>]+?)(?:\/>|>)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const attrs = m[1];
+    result.push({
+      name:    attrVal(attrs, 'name'),
+      owner:   attrVal(attrs, 'owner'),
+      date:    attrVal(attrs, 'date'),
+      comment: attrVal(attrs, 'comment'),
+      scope:   attrVal(attrs, 'scope'),
+    });
+  }
+  return result;
+}
+
+function parseConflictsText(text: string): ConflictInfo[] {
+  const conflicts: ConflictInfo[] = [];
+  // tf resolve /preview output: "Conflict (type): server_item"
+  // or: "  local_path: server conflict"
+  const re = /^(?:Conflict\s+\(([^)]+)\):?\s+)?(.+?)(?:\s+[-–]\s+(.+))?$/gim;
+  const lines = text.split(/\r?\n/).filter(
+    (l) => /conflict/i.test(l) && l.trim().length > 0
+  );
+  for (const line of lines) {
+    const stripped = line.trim();
+    conflicts.push({
+      localItem:  stripped,
+      serverItem: '',
+      type:       /merge/i.test(stripped) ? 'merge' : 'version',
+    });
+  }
+  return conflicts;
 }
